@@ -19,7 +19,6 @@ async function localizarCep(cep) {
         return cepLocalizado;
     } else {
         const promiseCep = await axios.get(`https://viacep.com.br/ws/${cep}/json/`)
-        //console.log(`Endereço encontrado ${promiseCep.data}`)
         bancoDeEnderecos.push(promiseCep.data)
         fs.writeFile(path.join(__dirname,"..", "data", "enderecos.json"), JSON.stringify(bancoDeEnderecos), (err) => {
             if(err) {
@@ -32,10 +31,36 @@ async function localizarCep(cep) {
 
 }
 
+//async function localizarLogradouro() {}
+
+
+
+async function buscarLogradouro(req, res) {
+    const { uf, cidade, logradouro } = req.params;
+
+    const logradouroLocalizado = bancoDeEnderecos.find(endereco => endereco.logradouro === logradouro);
+    if(logradouroLocalizado) {
+        res.json(logradouroLocalizado);
+        return;
+    } else {
+        const promiseLogradouro = await axios.get(`https://viacep.com.br/ws/${uf}/${cidade}/${logradouro}/json/`)
+        
+        console.log(promiseLogradouro.data)
+          promiseLogradouro.data.forEach((item) => bancoDeEnderecos.push(item))
+
+        fs.writeFile(path.join(__dirname, "..", "data", "enderecos.json"), JSON.stringify(bancoDeEnderecos), (err) => {
+            if(err) {
+                res.send("[ERRO]", err);
+            } else {
+                res.send("escrito com sucesso!")
+            }
+        });      
+    }
+}
+
 async function buscarEndereco(req, res) {
     const cep = formatarCep(req.params.cep)
     
-    // Já formatei o cep, agora só falta pesquisar no bancoDeEnderecos e se não encontrar fazer a requisição para a api do via CEP!
     const localizarNoBancoDeEnderecos = await localizarCep(cep);
 
     res.json(localizarNoBancoDeEnderecos)
@@ -44,4 +69,5 @@ async function buscarEndereco(req, res) {
 
 module.exports = {
     buscarEndereco,
+    buscarLogradouro
 }
